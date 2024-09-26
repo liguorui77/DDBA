@@ -1,1 +1,1 @@
-# The code of DDBA will be made publicly after it is accepted.
+# The full code of DDBA will be made publicly after it is accepted.
