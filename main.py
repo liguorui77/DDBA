@@ -133,8 +133,6 @@ if __name__ == '__main__':
     parser.add_argument('--params', dest='params')
     args = parser.parse_args()
     with open(f'./{args.params}', 'r') as f:
-    # with open(f'/home/changrx/MachineCode/DBA-master2/utils/tiny_params.yaml', 'r') as f:
-    # with open(f'/home/changrx/MachineCode/DBA-master2/utils/cifar_params.yaml', 'r') as f:
         params_loaded = yaml.load(f, Loader=Loader)
     current_time = datetime.datetime.now().strftime('%b.%d_%H.%M.%S')
     if params_loaded['type'] == config.TYPE_LOAN:
@@ -308,5 +306,5 @@ if __name__ == '__main__':
                 f"Visdom environment: {helper.params['environment_name']}")
 
 
-    vis.save([helper.params['environment_name']])
+    # vis.save([helper.params['environment_name']])
 

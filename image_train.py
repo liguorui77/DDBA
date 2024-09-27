@@ -116,32 +116,6 @@ def ImageTrain(helper, start_epoch, local_model, target_model, is_poison,agent_n
                 temp_local_epoch = (epoch - 1) *internal_epoch_num
 
 
-                #debug
-
-                rate_bd = 0.1 #
-                # rate_bd = 0.01
-                total_loss_ce = 0
-                total_sample = 0
-                cross_ratio = 0.1
-                s = 0.5
-                grid_rescale = 1
-                input_height = 32
-                    
-                k = 4
-                target_label = 2
-                # Prepare grid
-                ins = torch.rand(1, 2, k, k) * 2 - 1
-                ins = ins / torch.mean(torch.abs(ins))
-                noise_grid = (
-                    F.interpolate(ins, size=input_height, mode="bicubic", align_corners=True)
-                    .permute(0, 2, 3, 1)
-                    .to(device)
-                ) # 
-                array1d = torch.linspace(-1, 1, steps=input_height)
-                x, y = torch.meshgrid(array1d, array1d)
-                identity_grid = torch.stack((y, x), 2)[None, ...].to(device)
-
-
                 for internal_epoch in range(1, internal_epoch_num + 1):
                     temp_local_epoch += 1
                     _, data_iterator = helper.train_data[agent_name_key]
@@ -188,10 +162,6 @@ def ImageTrain(helper, start_epoch, local_model, target_model, is_poison,agent_n
                         epsilon = 0.01
                         weight_difference, difference_flat = get_weight_difference(target_model_copy, model.named_parameters())
                         clipped_weight_difference, _ = clip_grad(epsilon, weight_difference, difference_flat) # 0.3
-
-                        # weight_difference, difference_flat = get_weight_difference(target_model_copy, clipped_weight_difference)
-                        # copy_params(model, weight_difference)
-                        # # main.logger.info(f'mine')
                         # for name, layer in model.named_parameters():
                         #     # 使用全局权重和裁剪后的权重差异进行更新
                         #     layer.data = target_model_copy[name].data + clipped_weight_difference[name]
@@ -313,11 +283,6 @@ def ImageTrain(helper, start_epoch, local_model, target_model, is_poison,agent_n
                                  f"adversaries is: {helper.model_global_norm(model)}. distance: {distance}")
                 
 
-                # weight_difference, difference_flat = get_weight_difference(target_model_copy, model.named_parameters())
-                # clipped_weight_difference, _ = clip_grad(0.03, weight_difference, difference_flat) # 0.3
-                # weight_difference, difference_flat = get_weight_difference(target_model_copy, clipped_weight_difference)
-                # copy_params(model, weight_difference)
-
             else:
                 temp_local_epoch = (epoch - 1) * helper.params['internal_epochs']
                 for internal_epoch in range(1, helper.params['internal_epochs'] + 1):
@@ -394,11 +359,6 @@ def ImageTrain(helper, start_epoch, local_model, target_model, is_poison,agent_n
                             f'MODEL {model_id}. P-norm is {helper.model_global_norm(model):.4f}. '
                             f'Distance to the global model: {dis2global_list}. ')
 
-                # test local model after internal epoch finishing
-                # epoch_loss, epoch_acc, epoch_corret, epoch_total = test.Mytest(helper=helper, epoch=epoch,
-                #                                                                model=model, is_poison=False, visualize=False,
-                #                                                                agent_name_key=agent_name_key)
-                # csv_record.test_result.append([agent_name_key, epoch, epoch_loss, epoch_acc, epoch_corret, epoch_total])
 
             if is_poison:
                 if agent_name_key in helper.params['adversary_list'] and (epoch in localmodel_poison_epochs):
@@ -466,17 +426,6 @@ def ImageTrain(helper, start_epoch, local_model, target_model, is_poison,agent_n
     ordered_dict = OrderedDict.fromkeys(epochs_submit_update_dict)
     ordered_dict2 = OrderedDict()
     ordered_dict2.update(epochs_submit_update_dict)
-    # for k, v in ordered_dict.items():
-    #     if epochs_submit_update_dict_order[k] != v:
-    #         print(1)
-    #     else:
-    #         print(2)
-    # ordered_dict = OrderedDict((k, epochs_submit_update_dict[k]) for k in sorted(epochs_submit_update_dict))
-    # for k, v in ordered_dict.items():
-    #     if epochs_submit_update_dict_order[k] != v:
-    #         print(1)
-    #     else:
-    #         print(2)
     print(len(train_models))
     ordered_dicts = [dct for v in epochs_submit_update_dict_order.values() for dct in v]
     list1 = []
@@ -531,177 +480,3 @@ def clip_grad(norm_bound, weight_difference, difference_flat):
 def copy_params(model, target_params_variables):
     for name, layer in model.named_parameters():
         layer.data = copy.deepcopy(target_params_variables[name])
-
-
-def make_blend_image(input_image, device):
-    # print(type(input_image))
-
-
-    img_t = plt.imread('/home/changrx/last/BackdoorBench-main/resource/blended/hello_kitty.jpeg') 
-    img_t_pil = Image.fromarray(img_t)
-
-    # 调整图像大小为32x32像素
-    # img_t_resized_pil = img_t_pil.resize((32, 32))
-    img_t_resized_pil = img_t_pil.resize((32, 32))
-
-    # 如果你需要将调整大小后的PIL图像再次转换为NumPy数组：
-    img_t = np.array(img_t_resized_pil)
-    img_t = torch.tensor(img_t)
-    img_t = img_t.permute(2, 0, 1).to(device)
-    # print(img_t.size())
-    # print(input_image.size())
-    img_t = img_t.float()/255.0
-    img_res = img_t*0.2 + input_image*0.8
-    # print(type(img_res))
-
-    return img_res
-    # transformed_inputs.append(img_res)
-
-def maketrigger_iamge( bptt, device = torch.device('cpu')) :
-        device = torch.device('cpu')
-        poison_count = 0
-        inputs, targets = bptt
-        inputs.to(device)
-        targets.to(device)
-        rate_bd = 0.1
-        bs = inputs.shape[0]
-        cross_ratio = 0.1
-        num_bd = int(bs * rate_bd) # 中毒的图片数量
-        input_height = 32
-        s = 0.15
-        k = 4
-        ins = torch.rand(1, 2, k, k) * 2 - 1
-        ins = ins / torch.mean(torch.abs(ins))
-        noise_grid = (
-            F.interpolate(ins, size=input_height, mode="bicubic", align_corners=True)
-            .permute(0, 2, 3, 1)
-            .to(device)
-        ) # 
-        array1d = torch.linspace(-1, 1, steps=input_height)
-        x, y = torch.meshgrid(array1d, array1d)
-        identity_grid = torch.stack((y, x), 2)[None, ...].to(device)
-        grid_rescale = 1
-
-
-
-        if num_bd <= 1:
-            num_bd = 1
-        num_cross = int(num_bd * cross_ratio)
-        grid_temps = (identity_grid + s * noise_grid / input_height) * grid_rescale
-        grid_temps = torch.clamp(grid_temps, -1, 1)
-
-        ins = torch.rand(num_cross, input_height, input_height, 2).to(device) * 2 - 1
-        grid_temps2 = grid_temps.repeat(num_cross, 1, 1, 1) + ins / input_height
-        grid_temps2 = torch.clamp(grid_temps2, -1, 1)
-        inputs_bd = F.grid_sample(inputs[:num_bd], grid_temps.repeat(num_bd, 1, 1, 1), align_corners=True)
-        inputs_bd2 = create_bd(inputs_bd, device)
-        inputs_cross = F.grid_sample(inputs[num_bd : (num_bd + num_cross)], grid_temps2, align_corners=True)
-
-
-        transformed_inputs = []
-                            # train_bd_transform = blend_attack_trans()
-        # for input_image in inputs[:num_bd]:
-        #     # 应用train_bd_transform到每个图像
-        #     img_res = self.make_blend_image(input_image, device)
-        #     transformed_inputs.append(img_res)
-        # # print(type(transformed_inputs[0]))
-        # inputs_bd2 = torch.stack(transformed_inputs)
-
-
-
-
-
-        total_inputs = torch.cat([inputs_bd2, inputs_cross, inputs[(num_bd + num_cross) :]], dim=0)
-        targets_bd = torch.ones_like(targets[:num_bd]) * self.params['poison_label_swap']
-        total_targets = torch.cat([targets_bd, targets[num_bd:]], dim=0)
-        poison_count = num_bd
-        return total_inputs,total_targets,poison_count
- 
-    
-def create_bd( inputs, device ='cuda:0'):
-        # device = torch.device('cuda:1') if torch.cuda.is_available() else torch.device('cpu')
-    device = device
-    device_cpu = torch.device("cpu")
-    Poison_β = 0.1 # 0.05
-    Poison_α = 0.15 #0.05
-    datachoice = 'cifar'
-    # if datachoice == 'cifar':
-    #     input_height = 32
-    #     input_width = 32
-    # elif datachoice == 'sub-image' or datachoice == 'tiny-image' or datachoice == 'web-face':
-    #     input_height = 224
-    #     input_width = 224
-    
-    input_height = 32
-    input_width = 32
-    bs,_ ,_ ,_ = inputs.shape
-
-    transforms_list = []
-    transforms_list.append(transforms.Resize((input_height, input_width)))
-    transforms_list.append(transforms.ToTensor())  
-    transforms_class = transforms.Compose(transforms_list)
-
-    if datachoice == 'sub-image' or datachoice == 'tiny-image' or datachoice == 'web-face':
-        im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/imgs/12.JPEG').convert('RGB')
-        # im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/imgs/13.JPEG').convert('RGB')
-        im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/imgs/14.JPEG').convert('RGB')
-    elif datachoice == 'cifar':
-        im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/imgs/cifar_deer.JPEG').convert('RGB')
-        # im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/cifar100_test/data/0.png').convert('RGB')
-        # im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/cifar100_test/data/1.png').convert('RGB')
-        # im_target = Image.open('/home/changrx/MachineCode/silent-killer-main/imgs/cifar_deer.JPEG').convert('RGB')
-    im_target = transforms_class(im_target)
-
-    im_target = np.clip(im_target.numpy() * 255, 0, 255)
-    im_target = torch.from_numpy(im_target).repeat(bs,1,1,1)
-
-    # inputs = np.clip(inputs.numpy()*255,0,255)
-    # 将 inputs 张量从 GPU 复制到 CPU
-    inputs_cpu = inputs.cpu()
-
-    # 将 inputs_cpu 转换为 NumPy 数组，并进行数值裁剪
-    inputs_np = np.clip(inputs_cpu.numpy() * 255, 0, 255)
-
-    bd_inputs = Fourier_pattern(inputs_np, im_target, Poison_β, Poison_α)
-
-    bd_inputs = torch.tensor(np.clip(bd_inputs/255,0,1),dtype=torch.float32)
-
-
-    return bd_inputs.to(device)
-
-
-def Fourier_pattern( img_, target_img, beta, ratio):
-        img_=cp.asarray(img_)
-        target_img=cp.asarray(target_img)
-        #  get the amplitude and phase spectrum of trigger image
-        fft_trg_cp = cp.fft.fft2(target_img, axes=(-2, -1))  
-        amp_target, pha_target = cp.abs(fft_trg_cp), cp.angle(fft_trg_cp)  
-        amp_target_shift = cp.fft.fftshift(amp_target, axes=(-2, -1))
-        #  get the amplitude and phase spectrum of source image
-        fft_source_cp = cp.fft.fft2(img_, axes=(-2, -1))
-        amp_source, pha_source = cp.abs(fft_source_cp), cp.angle(fft_source_cp)
-        amp_source_shift = cp.fft.fftshift(amp_source, axes=(-2, -1))
-
-        # swap the amplitude part of local image with target amplitude spectrum
-        bs,c, h, w = img_.shape
-        b = (np.floor(np.amin((h, w)) * beta)).astype(int)  
-        # 中心点
-        c_h = cp.floor(h / 2.0).astype(int)
-        c_w = cp.floor(w / 2.0).astype(int)
-
-        h1 = c_h - b
-        h2 = c_h + b + 1
-        w1 = c_w - b
-        w2 = c_w + b + 1
-
-        amp_source_shift[:,:, h1:h2, w1:w2] = amp_source_shift[:,:, h1:h2, w1:w2] * (1 - ratio) + (amp_target_shift[:,:,h1:h2, w1:w2]) * ratio
-        # IFFT
-        amp_source_shift = cp.fft.ifftshift(amp_source_shift, axes=(-2, -1))
-
-        # get transformed image via inverse fft
-        fft_local_ = amp_source_shift * cp.exp(1j * pha_source)
-        local_in_trg = cp.fft.ifft2(fft_local_, axes=(-2, -1))
-        local_in_trg = cp.real(local_in_trg)
-
-        return cp.asnumpy(local_in_trg)
-
