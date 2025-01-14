@@ -2,7 +2,7 @@
 [Dual-domain based backdoor attack against federated learning](https://www.sciencedirect.com/science/article/pii/S0925231225000967)
 
 ## Installation
-Install Pytorch
+Install PyTorch
 
 ## Usage
 ### Prepare the dataset:
