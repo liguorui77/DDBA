@@ -1,5 +1,5 @@
 # DDBA
-[Guorui Li, Runxing Chang, Ying Wang, Cong Wang. Dual-domain based backdoor attack against federated learning. Neurocomputing, 2025, 129424: 1-13.](https://www.sciencedirect.com/science/article/pii/S0925231225000967)
+[Dual-domain based backdoor attack against federated learning](https://www.sciencedirect.com/science/article/pii/S0925231225000967)
 
 ## Installation
 Install Pytorch
